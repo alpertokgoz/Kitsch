@@ -1,2 +1,2 @@
 # Kitsch
-Küçük İskender Tarsı Şiir Ceneratör H
+Küçük İskender Tarzı Şiir Ceneratör H
