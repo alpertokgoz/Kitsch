@@ -8,7 +8,7 @@ import sys
 import numpy as np
 from keras.callbacks import ModelCheckpoint
 from keras.layers import Activation, Dropout, Dense
-from keras.layers import Bidirectional, CuDNNLSTM
+from keras.layers import Bidirectional, CuDNNGRU
 from keras.models import Sequential
 
 locale.setlocale(locale.LC_ALL, 'tr_TR.utf8')
@@ -81,14 +81,12 @@ class Kitsch:
     def build_model(self):
         print('Build model...')
         model = Sequential()
-        model.add(
-            Bidirectional(CuDNNLSTM(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
+        model.add(Bidirectional(CuDNNGRU(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
         model.add(Dropout(0.5))
-        model.add(
-            Bidirectional(CuDNNLSTM(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
-        model.add(Dropout(0.25))
-        model.add(
-            Bidirectional(CuDNNLSTM(512, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=False)))
+        model.add(Bidirectional(CuDNNGRU(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
+        model.add(Dropout(0.2))
+        model.add(Bidirectional(CuDNNGRU(512, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=False)))
+        model.add((Dense(len(self.__vocab))))
         model.add((Dense(len(self.__vocab))))
         model.add(Activation('softmax'))
         model.compile(loss='categorical_crossentropy', optimizer='adam')
