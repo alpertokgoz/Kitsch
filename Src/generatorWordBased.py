@@ -1,37 +1,44 @@
 # -*- coding: utf-8 -*-
-import poemCrawler
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Dropout
-from keras.layers import LSTM
-from keras.optimizers import RMSprop
-from keras.callbacks import ModelCheckpoint
-from keras.utils.data_utils import get_file
-import numpy as np
-import random
-import sys
 import codecs
 import locale
+import random
+import sys
+
+import numpy as np
+from keras.callbacks import ModelCheckpoint
+from keras.layers import Dense, Activation
+from keras.layers import LSTM
+from keras.models import Sequential
+from keras.optimizers import RMSprop
 
 locale.setlocale(locale.LC_ALL, 'tr_TR.utf8')
 lower_map = {
     ord(u'I'): u'ı',
     ord(u'İ'): u'i',
-    }
+}
+
 
 def readPoemText():
     with codecs.open('kucukiskender.txt', "r", "UTF-8") as f:
         text = f.read()
         firstLines = [k[0] if k[0] else k[1] for k in [e.split('\r\n') for e in text.split('***')]]
-        text=text.replace('\r\n','\n').replace(';','').replace(':','').replace('\t','').replace('~','').replace('â','').replace('***', '').replace('1','').replace('2','').replace('3','').replace('4','').replace('5','').replace('6','').replace('7','').replace('8','').replace('9','').replace('0','').replace('-','').replace('\x91', '').replace('\x92', '').replace('\x93','').replace('*','').replace('\x94','').replace('(','').replace(')','').replace('_','').replace('&','').replace('^','').replace('/', '').replace("'", "")
+        text = text.replace('\r\n', '\n').replace(';', '').replace(':', '').replace('\t', '').replace('~', '').replace(
+            'â', '').replace('***', '').replace('1', '').replace('2', '').replace('3', '').replace('4', '').replace('5',
+                                                                                                                    '').replace(
+            '6', '').replace('7', '').replace('8', '').replace('9', '').replace('0', '').replace('-', '').replace(
+            '\x91', '').replace('\x92', '').replace('\x93', '').replace('*', '').replace('\x94', '').replace('(',
+                                                                                                             '').replace(
+            ')', '').replace('_', '').replace('&', '').replace('^', '').replace('/', '').replace("'", "")
         text = text.translate(lower_map).lower()
         words = []
         for s in text.split('\n'):
             words += s.split(' ')
         return firstLines, words
 
+
 def generate():
-    firstLines, text=readPoemText()
-    #text=text[:int(len(text)/1000)]
+    firstLines, text = readPoemText()
+    # text=text[:int(len(text)/1000)]
     chars = sorted(list(set(text)))
     print('Total chars: %s' % len(chars))
     print(chars)
@@ -59,11 +66,11 @@ def generate():
     print('Build model...')
     model = Sequential()
     model.add(LSTM(128, input_shape=(maxlen, len(chars)), return_sequences=True))
-    #model.add(Dropout(0.2))
-    #model.add(LSTM(512, return_sequences=True))
-    #model.add(Dropout(0.2))
-    #model.add(LSTM(512, input_shape=(maxlen, len(chars))))
-    #model.add(Dropout(0.2))
+    # model.add(Dropout(0.2))
+    # model.add(LSTM(512, return_sequences=True))
+    # model.add(Dropout(0.2))
+    # model.add(LSTM(512, input_shape=(maxlen, len(chars))))
+    # model.add(Dropout(0.2))
     model.add(Dense(len(chars)))
     model.add(Activation('softmax'))
     optimizer = RMSprop(lr=0.01)
@@ -77,18 +84,17 @@ def generate():
         preds = exp_preds / np.sum(exp_preds)
         probas = np.random.multinomial(1, preds, 1)
         return np.argmax(probas)
-    
 
-    filepath="./weights/weights-improvement-{epoch:02d}-{loss:.4f}-bigger.hdf5"
+    filepath = "./weights/weights-improvement-{epoch:02d}-{loss:.4f}-bigger.hdf5"
     checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
     callbacks_list = [checkpoint]
-   
+
     # train the model, output generated text after each iteration
     for iteration in range(1, 600):
         print()
         print('-' * 50)
         print('Iteration', iteration)
-        seed = firstLines[random.randint(0, len(firstLines)-1)]+'\r\n'
+        seed = firstLines[random.randint(0, len(firstLines) - 1)] + '\r\n'
 
         model.fit(X, y, batch_size=128, nb_epoch=1, callbacks=callbacks_list)
 
@@ -116,6 +122,7 @@ def generate():
                 sys.stdout.write(next_char)
                 sys.stdout.flush()
             print()
+
 
 if __name__ == '__main__':
     generate()
