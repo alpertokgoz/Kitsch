@@ -8,7 +8,7 @@ import sys
 import numpy as np
 from keras.callbacks import ModelCheckpoint
 from keras.layers import Activation, Dropout, Dense
-from keras.layers import Bidirectional,CuDNNLSTM
+from keras.layers import Bidirectional, CuDNNLSTM
 from keras.models import Sequential
 
 locale.setlocale(locale.LC_ALL, 'tr_TR.utf8')
@@ -29,7 +29,7 @@ class Kitsch:
         text = self.clean_data(text)
         self.set_vocab(text)
 
-        #text = text[:int(len(text) / 1000)]
+        #text = text[:int(len(text) / 100000)]
 
         X, Y = self.reshape_data(text)
         model = self.build_model()
@@ -41,17 +41,17 @@ class Kitsch:
             print()
             print('-' * 50)
             print('Iteration', ecpoch)
-            seed = firstLines[random.randint(0, len(firstLines) - 1)] + '\r\n'
+            seed_idx = random.randint(0, len(firstLines) - 1)
+            seed = '\r\n'.join(firstLines[seed_idx:seed_idx+3]) + '\r\n'
+            print('----- Will Generate with seed: \n"' + seed + '"\n')
+            model.fit(X, Y, batch_size=128, epochs=1, callbacks=callbacks_list, verbose=1)
 
-            model.fit(X, Y, batch_size=512, epochs=1, callbacks=callbacks_list, verbose=1)
-
-            for diversity in [0.5, 1.0, 1.2]:
+            for diversity in [0.5, 1.0, 1.5]:
                 print()
                 print('----- diversity:', diversity)
 
                 generated = ''
                 generated += seed
-                print('----- Generating with seed: "' + seed + '"\n')
                 sys.stdout.write(generated)
                 sentence = ""
 
@@ -79,13 +79,11 @@ class Kitsch:
     def build_model(self):
         print('Build model...')
         model = Sequential()
-        model.add(Bidirectional(CuDNNLSTM(256, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
+        model.add(Bidirectional(CuDNNLSTM(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
         model.add(Dropout(0.5))
-        model.add(Bidirectional(CuDNNLSTM(256, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
+        model.add(Bidirectional(CuDNNLSTM(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
         model.add(Dropout(0.25))
-        model.add(Bidirectional(CuDNNLSTM(256, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
-        model.add(Dropout(0.1))
-        model.add(Bidirectional(CuDNNLSTM(256, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=False)))
+        model.add(Bidirectional(CuDNNLSTM(512, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=False)))
         model.add((Dense(len(self.__vocab))))
         model.add(Activation('softmax'))
         model.compile(loss='categorical_crossentropy', optimizer='adam')
@@ -100,7 +98,6 @@ class Kitsch:
 
     def reshape_data(self, text):
         # cut the text in semi-redundant sequences of maxlen characters
-
         sentences = []
         next_chars = []
         for i in range(0, len(text) - self.__max_len, self.__step):
@@ -150,5 +147,5 @@ class Kitsch:
 
 
 if __name__ == '__main__':
-    mdl = Kitsch(data_path='../Data/kucukiskender.txt', max_len=42*2)
+    mdl = Kitsch(data_path='../Data/kucukiskender.txt', max_len=42 * 3)
     mdl.main()
