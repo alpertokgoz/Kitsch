@@ -15,7 +15,7 @@ locale.setlocale(locale.LC_ALL, 'tr_TR.utf8')
 
 
 class Kitsch:
-    def __init__(self, data_path, max_len=42, step=1):
+    def __init__(self, data_path, max_len, step):
         self.__lower_map = {
             ord(u'I'): u'ı',
             ord(u'İ'): u'i',
@@ -29,7 +29,7 @@ class Kitsch:
         text = self.clean_data(text)
         self.set_vocab(text)
 
-        #text = text[:int(len(text) / 100000)]
+        # text = text[:int(len(text) / 100000)]
 
         X, Y = self.reshape_data(text)
         model = self.build_model()
@@ -41,17 +41,18 @@ class Kitsch:
             print()
             print('-' * 50)
             print('Iteration', ecpoch)
-            seed_idx = random.randint(0, len(firstLines) - 1)
-            seed = '\r\n'.join(firstLines[seed_idx:seed_idx+3]) + '\r\n'
-            print('----- Will Generate with seed: \n"' + seed + '"\n')
+            seed_idx = random.randint(10, len(firstLines) - 3)
+            seed = '\r\n'.join(firstLines[seed_idx:seed_idx + 3]) + '\r\n'
+            seed = seed.translate(self.__lower_map).lower()
+            print('----- Will Generate after the seed: \n"' + seed + '"\n-----')
             model.fit(X, Y, batch_size=128, epochs=1, callbacks=callbacks_list, verbose=1)
 
             for diversity in [0.5, 1.0, 1.5]:
                 print()
                 print('----- diversity:', diversity)
-
+                print('----- Generating after the seed: \n' + seed + '\n-----')
                 generated = ''
-                generated += seed
+                # generated += seed
                 sys.stdout.write(generated)
                 sentence = ""
 
@@ -73,17 +74,21 @@ class Kitsch:
 
     def set_vocab(self, text):
         self.__vocab = sorted(list(set(text)))
+        print(self.__vocab)
         self.__char_indices = dict((c, i) for i, c in enumerate(self.__vocab))
         self.__indices_char = dict((i, c) for i, c in enumerate(self.__vocab))
 
     def build_model(self):
         print('Build model...')
         model = Sequential()
-        model.add(Bidirectional(CuDNNLSTM(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
+        model.add(
+            Bidirectional(CuDNNLSTM(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
         model.add(Dropout(0.5))
-        model.add(Bidirectional(CuDNNLSTM(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
+        model.add(
+            Bidirectional(CuDNNLSTM(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
         model.add(Dropout(0.25))
-        model.add(Bidirectional(CuDNNLSTM(512, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=False)))
+        model.add(
+            Bidirectional(CuDNNLSTM(512, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=False)))
         model.add((Dense(len(self.__vocab))))
         model.add(Activation('softmax'))
         model.compile(loss='categorical_crossentropy', optimizer='adam')
@@ -140,12 +145,12 @@ class Kitsch:
                                                                                                           '').replace(
             '\x94', '').replace('(', '').replace(')', '').replace('_', '').replace('&', '').replace('^',
                                                                                                     '').replace(
-            '/', '').replace("'", "")
+            '/', '').replace("'", "").replace(';', ',')
         text = text.translate(self.__lower_map).lower()
 
         return text
 
 
 if __name__ == '__main__':
-    mdl = Kitsch(data_path='../Data/kucukiskender.txt', max_len=42 * 3)
+    mdl = Kitsch(data_path='../Data/kucukiskender.txt', max_len=42 * 3, step=1)
     mdl.main()
