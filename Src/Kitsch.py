@@ -42,20 +42,20 @@ class Kitsch:
         self.train(callbacks, X, Y)
 
     def on_epoch_end(self, epoch, logs):
-        seed_idx = random.randint(10, len(self.__first_lines) - 3)
-        seed = '\r\n'.join(self.__first_lines[seed_idx:seed_idx + 3]) + '\r\n'
+        seed_idx = random.randint(10, len(self.__first_lines) - 10)
+        seed = '\r\n'.join(self.__first_lines[seed_idx:seed_idx + 10]) + '\r\n'
         seed = seed.translate(self.__lower_map).lower()
         seed = self.clean_data(seed)
-        starter_seed = copy.deepcopy(seed)
+        starter_seed = copy.deepcopy(seed[:self.__max_len])
         print('----- Will Generate after the seed: \n"' + seed + '"\n-----')
 
         for diversity in [0.5, 1.0, 1.5]:
             print()
             print('----- diversity:', diversity)
             seed = starter_seed
-            sys.stdout.write(starter_seed)
+            # sys.stdout.write(starter_seed)
 
-            for i in range(128):
+            for i in range(self.__max_len * 2):
                 x = np.zeros((1, self.__max_len, len(self.__vocab)))
                 for t, char in enumerate(seed):
                     x[0, t, self.__char_indices[char]] = 1.
