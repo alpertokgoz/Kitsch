@@ -72,7 +72,7 @@ class Kitsch:
             print()
 
     def load_model_from_file(self):
-        print('Loading')
+        print('Loading...')
         if os.path.exists(self.__file_path):
             return load_model(self.__file_path)
         else:
@@ -87,7 +87,7 @@ class Kitsch:
 
     def set_vocab(self, text):
         self.__vocab = sorted(list(set(text)))
-        print(self.__vocab)
+        print(self.__vocab, len(self.__vocab))
         self.__char_indices = dict((c, i) for i, c in enumerate(self.__vocab))
         self.__indices_char = dict((i, c) for i, c in enumerate(self.__vocab))
 
@@ -152,7 +152,8 @@ class Kitsch:
                                                                                                           '').replace(
             '\x94', '').replace('(', '').replace(')', '').replace('_', '').replace('&', '').replace('^',
                                                                                                     '').replace(
-            '/', '').replace("'", "").replace(';', ',').replace('\r\n', '\n').replace('w', '').replace('x', '')
+            '/', '').replace("'", "").replace(';', ',').replace('\r\n', '\n').replace('w', '').replace('x', '').replace(
+            ':', '').replace(';', '').replace('\t', ' ')
         text = text.translate(self.__lower_map).lower()
 
         return text
