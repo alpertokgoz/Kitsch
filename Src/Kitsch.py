@@ -50,7 +50,6 @@ class Kitsch:
             print()
             print('----- diversity:', diversity)
             seed = starter_seed
-            generated = starter_seed
             sys.stdout.write(starter_seed)
 
             for i in range(168):
