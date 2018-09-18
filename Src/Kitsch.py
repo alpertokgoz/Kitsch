@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import codecs
+import copy
 import locale
 import random
 import sys
 
 import numpy as np
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, LambdaCallback
 from keras.layers import Activation, Dropout, Dense
 from keras.layers import Bidirectional, CuDNNGRU
 from keras.models import Sequential
@@ -23,54 +24,56 @@ class Kitsch:
         self.__data_path = data_path
         self.__max_len = max_len
         self.__step = step
+        self.__model = None
 
     def main(self):
-        first_lines, text = self.read_data()
+        self.__first_lines, text = self.read_data()
         text = self.clean_data(text)
         self.set_vocab(text)
 
-        # text = text[:int(len(text) / 100000)]
+        # text = text[:int(len(text) / 1000)]
 
         X, Y = self.reshape_data(text)
-        model = self.build_model()
+        self.__model = self.build_model()
         callbacks = self.get_callbacks()
-        self.train(model, callbacks, X, Y, first_lines)
+        self.train(callbacks, X, Y)
 
-    def train(self, model, callbacks_list, X, Y, firstLines, epochs=100, verbose=False):
-        for ecpoch in range(1, epochs):
+    def on_epoch_end(self, epoch, logs):
+        seed_idx = random.randint(10, len(self.__first_lines) - 4)
+        seed = '\r\n'.join(self.__first_lines[seed_idx:seed_idx + 4]) + '\r\n'
+        seed = seed.translate(self.__lower_map).lower()
+        seed = self.clean_data(seed)
+        starter_seed = copy.deepcopy(seed)
+        print('----- Will Generate after the seed: \n"' + seed + '"\n-----')
+
+        for diversity in [0.5, 1.0, 1.5]:
             print()
-            print('-' * 50)
-            print('Iteration', ecpoch)
-            seed_idx = random.randint(10, len(firstLines) - 3)
-            seed = '\r\n'.join(firstLines[seed_idx:seed_idx + 3]) + '\r\n'
-            seed = seed.translate(self.__lower_map).lower()
-            print('----- Will Generate after the seed: \n"' + seed + '"\n-----')
-            model.fit(X, Y, batch_size=128, epochs=1, callbacks=callbacks_list, verbose=1)
+            print('----- diversity:', diversity)
+            seed = starter_seed
+            generated = starter_seed
+            sys.stdout.write(starter_seed)
 
-            for diversity in [0.5, 1.0, 1.5]:
-                print()
-                print('----- diversity:', diversity)
-                print('----- Generating after the seed: \n' + seed + '\n-----')
-                generated = ''
-                # generated += seed
-                sys.stdout.write(generated)
-                sentence = ""
+            for i in range(168):
+                x = np.zeros((1, self.__max_len, len(self.__vocab)))
+                for t, char in enumerate(seed):
+                    x[0, t, self.__char_indices[char]] = 1.
 
-                for i in range(168):
-                    x = np.zeros((1, self.__max_len, len(self.__vocab)))
-                    for t, char in enumerate(sentence):
-                        x[0, t, self.__char_indices[char]] = 1.
+                preds = self.__model.predict(x, verbose=0)[0]
+                next_index = self.generate_sample(preds, diversity)
+                next_char = self.__indices_char[next_index]
 
-                    preds = model.predict(x, verbose=0)[0]
-                    next_index = self.generate_sample(preds, diversity)
-                    next_char = self.__indices_char[next_index]
+                seed = seed[1:] + next_char
 
-                    generated += next_char
-                    sentence = sentence[1:] + next_char
+                sys.stdout.write(next_char)
+                sys.stdout.flush()
+            print()
 
-                    sys.stdout.write(next_char)
-                    sys.stdout.flush()
-                print()
+    def train(self, callbacks_list, X, Y, epochs=100, verbose=1):
+        for epoch in range(1, epochs):
+            print()
+            print('-' * 100)
+            print('Iteration', epoch)
+            self.__model.fit(X, Y, batch_size=128, epochs=1, callbacks=callbacks_list, verbose=verbose)
 
     def set_vocab(self, text):
         self.__vocab = sorted(list(set(text)))
@@ -94,10 +97,10 @@ class Kitsch:
         return model
 
     def get_callbacks(self):
-        filepath = "../ModelWeights/weights-improvement-{epoch:02d}-{loss:.4f}-bigger.hdf5"
+        filepath = "../ModelWeights/bestModelSoFar.hdf5"
         checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
-
-        return [checkpoint]
+        generate_sample = LambdaCallback(on_epoch_end=self.on_epoch_end)
+        return [checkpoint, generate_sample]
 
     def reshape_data(self, text):
         # cut the text in semi-redundant sequences of maxlen characters
@@ -133,7 +136,6 @@ class Kitsch:
             return firstLines, text
 
     def clean_data(self, text):
-
         text = text.replace('~', '').replace('â', '').replace('***', '').replace('1', '').replace('2',
                                                                                                   '').replace(
             '3', '').replace('4', '').replace('5', '').replace('6', '').replace('7', '').replace('8', '').replace(
@@ -143,7 +145,7 @@ class Kitsch:
                                                                                                           '').replace(
             '\x94', '').replace('(', '').replace(')', '').replace('_', '').replace('&', '').replace('^',
                                                                                                     '').replace(
-            '/', '').replace("'", "").replace(';', ',')
+            '/', '').replace("'", "").replace(';', ',').replace('\r\n', '\n')
         text = text.translate(self.__lower_map).lower()
 
         return text
