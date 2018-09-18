@@ -9,7 +9,7 @@ import sys
 import numpy as np
 from keras.callbacks import ModelCheckpoint, LambdaCallback
 from keras.layers import CuDNNGRU
-from keras.layers import Dropout, Dense
+from keras.layers import Dropout, Dense, Bidirectional
 from keras.models import Sequential
 from keras.models import load_model
 
@@ -58,6 +58,7 @@ class Kitsch:
             for i in range(168):
                 x = np.zeros((1, self.__max_len, len(self.__vocab)))
                 for t, char in enumerate(seed):
+                    print(t, char)
                     x[0, t, self.__char_indices[char]] = 1.
 
                 preds = self.__model.predict(x, verbose=0)[0]
@@ -93,8 +94,8 @@ class Kitsch:
     def build_model(self):
         print('Build model...')
         model = Sequential()
-        model.add(CuDNNGRU(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True))
-        model.add(Dropout(0.3))
+        model.add(Bidirectional(CuDNNGRU(512, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
+        model.add(Dropout(0.25))
         model.add(CuDNNGRU(512, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True))
         model.add(Dropout(0.2))
         model.add(CuDNNGRU(256, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=False))
@@ -151,7 +152,7 @@ class Kitsch:
                                                                                                           '').replace(
             '\x94', '').replace('(', '').replace(')', '').replace('_', '').replace('&', '').replace('^',
                                                                                                     '').replace(
-            '/', '').replace("'", "").replace(';', ',').replace('\r\n', '\n')
+            '/', '').replace("'", "").replace(';', ',').replace('\r\n', '\n').replace('w', '').replace('x', '')
         text = text.translate(self.__lower_map).lower()
 
         return text
