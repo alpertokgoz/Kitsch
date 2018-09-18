@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import codecs
 import copy
 import locale
@@ -8,8 +7,8 @@ import sys
 
 import numpy as np
 from keras.callbacks import ModelCheckpoint, LambdaCallback
-from keras.layers import Activation, Dropout, Dense
-from keras.layers import Bidirectional, CuDNNGRU
+from keras.layers import CuDNNGRU
+from keras.layers import Dropout, Dense
 from keras.models import Sequential
 
 locale.setlocale(locale.LC_ALL, 'tr_TR.utf8')
@@ -67,7 +66,7 @@ class Kitsch:
                 sys.stdout.flush()
             print()
 
-    def train(self, callbacks_list, X, Y, epochs=100, verbose=1):
+    def train(self, callbacks_list, X, Y, epochs=1000, verbose=1):
         for epoch in range(1, epochs):
             print()
             print('-' * 100)
@@ -83,16 +82,14 @@ class Kitsch:
     def build_model(self):
         print('Build model...')
         model = Sequential()
-        model.add(Bidirectional(CuDNNGRU(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
-        model.add(Dropout(0.5))
-        model.add(Bidirectional(CuDNNGRU(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
+        model.add(CuDNNGRU(1024, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True))
+        model.add(Dropout(0.3))
+        model.add(CuDNNGRU(512, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True))
         model.add(Dropout(0.2))
-        model.add(Bidirectional(CuDNNGRU(512, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=False)))
-        model.add((Dense(len(self.__vocab))))
-        model.add((Dense(len(self.__vocab))))
-        model.add(Activation('softmax'))
+        model.add(CuDNNGRU(256, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=False))
+        model.add((Dense(len(self.__vocab), activation='relu')))
+        model.add((Dense(len(self.__vocab), activation='softmax')))
         model.compile(loss='categorical_crossentropy', optimizer='adam')
-
         return model
 
     def get_callbacks(self):
