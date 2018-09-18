@@ -42,8 +42,8 @@ class Kitsch:
         self.train(callbacks, X, Y)
 
     def on_epoch_end(self, epoch, logs):
-        seed_idx = random.randint(10, len(self.__first_lines) - 4)
-        seed = '\r\n'.join(self.__first_lines[seed_idx:seed_idx + 4]) + '\r\n'
+        seed_idx = random.randint(10, len(self.__first_lines) - 3)
+        seed = '\r\n'.join(self.__first_lines[seed_idx:seed_idx + 3]) + '\r\n'
         seed = seed.translate(self.__lower_map).lower()
         seed = self.clean_data(seed)
         starter_seed = copy.deepcopy(seed)
@@ -55,10 +55,9 @@ class Kitsch:
             seed = starter_seed
             sys.stdout.write(starter_seed)
 
-            for i in range(168):
+            for i in range(128):
                 x = np.zeros((1, self.__max_len, len(self.__vocab)))
                 for t, char in enumerate(seed):
-                    print(t, char)
                     x[0, t, self.__char_indices[char]] = 1.
 
                 preds = self.__model.predict(x, verbose=0)[0]
