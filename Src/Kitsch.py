@@ -2,6 +2,7 @@
 import codecs
 import copy
 import locale
+import os
 import random
 import sys
 
@@ -10,12 +11,13 @@ from keras.callbacks import ModelCheckpoint, LambdaCallback
 from keras.layers import CuDNNGRU
 from keras.layers import Dropout, Dense
 from keras.models import Sequential
+from keras.models import load_model
 
 locale.setlocale(locale.LC_ALL, 'tr_TR.utf8')
 
 
 class Kitsch:
-    def __init__(self, data_path, max_len, step):
+    def __init__(self, data_path, max_len, step, file_path="../ModelWeights/bestModelSoFar.hdf5"):
         self.__lower_map = {
             ord(u'I'): u'ı',
             ord(u'İ'): u'i',
@@ -24,6 +26,7 @@ class Kitsch:
         self.__max_len = max_len
         self.__step = step
         self.__model = None
+        self.__file_path = file_path
 
     def main(self):
         self.__first_lines, text = self.read_data()
@@ -34,6 +37,7 @@ class Kitsch:
 
         X, Y = self.reshape_data(text)
         self.__model = self.build_model()
+        self.__model = self.load_model_from_file()
         callbacks = self.get_callbacks()
         self.train(callbacks, X, Y)
 
@@ -66,6 +70,13 @@ class Kitsch:
                 sys.stdout.flush()
             print()
 
+    def load_model_from_file(self):
+        print('Loading')
+        if os.path.exists(self.__file_path):
+            return load_model(self.__file_path)
+        else:
+            return self.__model
+
     def train(self, callbacks_list, X, Y, epochs=1000, verbose=1):
         for epoch in range(1, epochs):
             print()
@@ -93,8 +104,7 @@ class Kitsch:
         return model
 
     def get_callbacks(self):
-        filepath = "../ModelWeights/bestModelSoFar.hdf5"
-        checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
+        checkpoint = ModelCheckpoint(self.__file_path, monitor='loss', verbose=1, save_best_only=True, mode='min')
         generate_sample = LambdaCallback(on_epoch_end=self.on_epoch_end)
         return [checkpoint, generate_sample]
 
