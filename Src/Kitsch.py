@@ -50,7 +50,7 @@ class Kitsch:
         starter_seed = copy.deepcopy(seed)
         print('----- Will Generate after the seed: \n"' + seed + '"\n-----')
 
-        for diversity in [0.5, 1.0, 1.5]:
+        for diversity in [0.5, 1.0]:
             print()
             print('----- diversity:', diversity)
             seed = starter_seed
