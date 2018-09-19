@@ -8,8 +8,8 @@ import sys
 
 import numpy as np
 from keras.callbacks import ModelCheckpoint, LambdaCallback
-from keras.layers import CuDNNGRU
-from keras.layers import Dropout, Dense, Bidirectional
+from keras.layers import CuDNNLSTM
+from keras.layers import Dropout, Dense
 from keras.models import Sequential
 from keras.models import load_model
 
@@ -46,7 +46,8 @@ class Kitsch:
         seed = '\r\n'.join(self.__first_lines[seed_idx:seed_idx + 10]) + '\r\n'
         seed = seed.translate(self.__lower_map).lower()
         seed = self.clean_data(seed)
-        starter_seed = copy.deepcopy(seed[:self.__max_len])
+        seed = seed[:self.__max_len]
+        starter_seed = copy.deepcopy(seed)
         print('----- Will Generate after the seed: \n"' + seed + '"\n-----')
 
         for diversity in [0.5, 1.0, 1.5]:
@@ -82,7 +83,7 @@ class Kitsch:
             print()
             print('-' * 100)
             print('Iteration', epoch)
-            self.__model.fit(X, Y, batch_size=128, epochs=1, callbacks=callbacks_list, verbose=verbose)
+            self.__model.fit(X, Y, batch_size=128, epochs=5, callbacks=callbacks_list, verbose=2)
 
     def set_vocab(self, text):
         self.__vocab = sorted(list(set(text)))
@@ -93,12 +94,10 @@ class Kitsch:
     def build_model(self):
         print('Build model...')
         model = Sequential()
-        model.add(Bidirectional(CuDNNGRU(512, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
-        model.add(Dropout(0.25))
-        model.add(Bidirectional(CuDNNGRU(512, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
-        model.add(Dropout(0.2))
-        model.add(Bidirectional(CuDNNGRU(256, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=False)))
-        model.add((Dense(len(self.__vocab), activation='relu')))
+        model.add((CuDNNLSTM(256, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=True)))
+        model.add(Dropout(0.5))
+        model.add((CuDNNLSTM(256, input_shape=(self.__max_len, len(self.__vocab)), return_sequences=False)))
+        model.add(Dropout(0.5))
         model.add((Dense(len(self.__vocab), activation='softmax')))
         model.compile(loss='categorical_crossentropy', optimizer='adam')
         return model
@@ -159,5 +158,5 @@ class Kitsch:
 
 
 if __name__ == '__main__':
-    mdl = Kitsch(data_path='../Data/kucukiskender.txt', max_len=42 * 3, step=1)
+    mdl = Kitsch(data_path='../Data/kucukiskender.txt', max_len=128, step=1)
     mdl.main()
