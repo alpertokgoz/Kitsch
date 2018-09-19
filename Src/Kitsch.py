@@ -83,7 +83,7 @@ class Kitsch:
             print()
             print('-' * 100)
             print('Iteration', epoch)
-            self.__model.fit(X, Y, batch_size=128, epochs=5, callbacks=callbacks_list, verbose=2)
+            self.__model.fit(X, Y, batch_size=128, epochs=1, callbacks=callbacks_list, verbose=2)
 
     def set_vocab(self, text):
         self.__vocab = sorted(list(set(text)))
@@ -160,3 +160,4 @@ class Kitsch:
 if __name__ == '__main__':
     mdl = Kitsch(data_path='../Data/kucukiskender.txt', max_len=128, step=1)
     mdl.main()
+    # +300 iterasyon
